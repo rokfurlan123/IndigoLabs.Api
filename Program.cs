@@ -60,3 +60,5 @@ app.UseAuthorization();
 app.MapMeasurementEndpoints();
 
 app.Run();
+
+public partial class Program;

@@ -1,4 +1,5 @@
 using System.Collections.Frozen;
+using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.InteropServices;
 using IndigoLabs.Api.Models;
@@ -9,6 +10,8 @@ namespace IndigoLabs.Api.Services;
 
 public sealed class MeasurementStatisticsService : IMeasurementStatisticsService
 {
+    private const string ExpectedHeader = "datetime;city;temp_celsius";
+
     private readonly MeasurementDataOptions _options;
     private readonly IWebHostEnvironment _environment;
     private readonly SemaphoreSlim _cacheLock = new(1, 1);
@@ -106,6 +109,7 @@ public sealed class MeasurementStatisticsService : IMeasurementStatisticsService
 
     private async Task<MeasurementCache> BuildCacheAsync(CancellationToken cancellationToken)
     {
+        var stopwatch = Stopwatch.StartNew();
         var filePath = GetDataFilePath();
         if (!File.Exists(filePath))
         {
@@ -117,14 +121,24 @@ public sealed class MeasurementStatisticsService : IMeasurementStatisticsService
         await using var stream = File.OpenRead(filePath);
         using var reader = new StreamReader(stream);
 
-        _ = await reader.ReadLineAsync(cancellationToken);
+        var header = await reader.ReadLineAsync(cancellationToken);
+        if (!string.Equals(header, ExpectedHeader, StringComparison.Ordinal))
+        {
+            throw new InvalidDataException(
+                $"Measurement data header is invalid. Expected '{ExpectedHeader}', got '{header ?? "<empty>"}'.");
+        }
+
+        long dataRowCount = 0;
+        long skippedMalformedRowCount = 0;
 
         while (await reader.ReadLineAsync(cancellationToken) is { } line)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            dataRowCount++;
 
             if (!TryParseMeasurement(line, out var city, out var temperature))
             {
+                skippedMalformedRowCount++;
                 continue;
             }
 
@@ -143,12 +157,20 @@ public sealed class MeasurementStatisticsService : IMeasurementStatisticsService
             .OrderBy(entry => entry.City, StringComparer.OrdinalIgnoreCase)
             .ToArray();
 
+        var fileInfo = new FileInfo(filePath);
+        stopwatch.Stop();
+
         return new MeasurementCache(
             cities,
             cities.ToFrozenDictionary(city => city.City, StringComparer.OrdinalIgnoreCase),
             DateTimeOffset.UtcNow,
-            File.GetLastWriteTimeUtc(filePath),
-            new FileInfo(filePath).Length);
+            fileInfo.LastWriteTimeUtc,
+            fileInfo.Length,
+            fileInfo.Name,
+            fileInfo.FullName,
+            dataRowCount,
+            skippedMalformedRowCount,
+            stopwatch.Elapsed);
     }
 
     private static MeasurementCacheStatus ToStatus(MeasurementCache cache)
@@ -157,7 +179,12 @@ public sealed class MeasurementStatisticsService : IMeasurementStatisticsService
             cache.Cities.Count,
             cache.CalculatedAtUtc,
             cache.SourceLastModifiedUtc,
-            cache.SourceFileSizeBytes);
+            cache.SourceFileSizeBytes,
+            cache.SourceFileName,
+            cache.SourceFilePath,
+            cache.DataRowCount,
+            cache.SkippedMalformedRowCount,
+            cache.CalculationDuration.TotalMilliseconds);
     }
 
     private string GetDataFilePath()
@@ -200,7 +227,12 @@ public sealed class MeasurementStatisticsService : IMeasurementStatisticsService
         FrozenDictionary<string, CityTemperatureStats> CitiesByName,
         DateTimeOffset CalculatedAtUtc,
         DateTimeOffset SourceLastModifiedUtc,
-        long SourceFileSizeBytes);
+        long SourceFileSizeBytes,
+        string SourceFileName,
+        string SourceFilePath,
+        long DataRowCount,
+        long SkippedMalformedRowCount,
+        TimeSpan CalculationDuration);
 
     private struct TemperatureAggregate
     {

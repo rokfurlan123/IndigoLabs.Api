@@ -28,10 +28,18 @@ Last updated: 2026-06-13
 - Added source file metadata to cache status:
   - source last modified UTC
   - source file size in bytes
+- Added extended cache status metadata:
+  - source file name/path
+  - data row count
+  - skipped malformed row count
+  - calculation duration
+- Added CSV header validation for `datetime;city;temp_celsius`.
 - Added handling for calculation-in-progress responses.
 - Added xUnit test project at `tests/IndigoLabs.Api.Tests`.
 - Added service tests for aggregation, city lookup, filters, recalculation, and missing CSV behavior.
 - Added password hash verifier tests.
+- Added endpoint tests for authentication, not found, calculation-in-progress, and successful JSON responses.
+- Expanded `IndigoLabs.Api.http` with manual HTTP scenarios for Swagger, authentication, cache status, retrieval endpoints, filtering, recalculation, and calculation-in-progress behavior.
 - Verified the API with manual smoke checks.
 
 ## Current API
@@ -63,7 +71,7 @@ Last updated: 2026-06-13
 - Cache status includes `sourceFileSizeBytes`.
 - File watcher starts and watches `Data/measurements.csv`.
 - `dotnet test tests/IndigoLabs.Api.Tests/IndigoLabs.Api.Tests.csproj` passes.
-- Current automated test count: 7 passing.
+- Current automated test count: 14 passing.
 
 ## Needs Change Or Upgrade
 
@@ -74,10 +82,6 @@ Last updated: 2026-06-13
   - cache behavior
   - file watcher behavior
   - assumptions about CSV format
-- Improve CSV parsing robustness:
-  - validate header
-  - count skipped malformed rows
-  - expose skipped row count in cache status
 - Consider returning clearer status during automatic file watcher recalculation:
   - current cache remains available, but manual recalculation lock can return `503`
   - decide whether reads should continue serving old cache during recalculation or return `503`
@@ -92,13 +96,11 @@ Last updated: 2026-06-13
 ## Still To Implement
 
 - Automated tests:
-  - endpoint tests for `401`, `503`, `404`, and success responses
   - Basic authentication handler tests
   - file watcher behavior tests if practical
 - `README.md`.
 - Git repository initialization and first commit, if desired.
 - Optional: solution file with separate test project.
-- Optional: endpoint to expose calculation duration and skipped row count.
 - Optional: API key or stronger auth if Basic auth is considered too weak.
 - Optional: Docker support.
 
@@ -113,4 +115,4 @@ Last updated: 2026-06-13
 - Provides Swagger/OpenAPI: done.
 - Basic API authentication: done.
 - README: not done.
-- Tests: started, 7 passing service/auth-helper tests.
+- Tests: started, 14 passing service/auth-helper/endpoint tests.

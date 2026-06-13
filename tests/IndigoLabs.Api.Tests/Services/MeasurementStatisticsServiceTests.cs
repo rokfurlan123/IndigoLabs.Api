@@ -93,6 +93,52 @@ public sealed class MeasurementStatisticsServiceTests
         Assert.Equal(20.0, paris.AverageTemperatureCelsius);
         Assert.Equal(1, status.CityCount);
         Assert.Equal(new FileInfo(testData.FilePath).Length, status.SourceFileSizeBytes);
+        Assert.Equal("measurements.csv", status.SourceFileName);
+        Assert.Equal(Path.GetFullPath(testData.FilePath), status.SourceFilePath);
+        Assert.Equal(2, status.DataRowCount);
+        Assert.Equal(0, status.SkippedMalformedRowCount);
+        Assert.True(status.CalculationDurationMilliseconds >= 0);
+    }
+
+    [Fact]
+    public async Task GetCacheStatus_AfterCalculation_ReturnsSourceMetadataAndSkippedRows()
+    {
+        using var testData = TestMeasurementData.Create(
+            "datetime;city;temp_celsius",
+            "2026-01-01T00:00;Paris;10.0",
+            "malformed",
+            "2026-01-02T00:00;Paris;20.0",
+            "2026-01-03T00:00;Berlin;5.0",
+            "2026-01-03T00:00;Berlin;not-a-number");
+
+        var service = CreateService(testData);
+
+        _ = await service.GetAllAsync(CancellationToken.None);
+        var status = service.GetCacheStatus();
+
+        Assert.NotNull(status);
+        Assert.Equal(2, status.CityCount);
+        Assert.Equal("measurements.csv", status.SourceFileName);
+        Assert.Equal(Path.GetFullPath(testData.FilePath), status.SourceFilePath);
+        Assert.Equal(new FileInfo(testData.FilePath).Length, status.SourceFileSizeBytes);
+        Assert.Equal(5, status.DataRowCount);
+        Assert.Equal(2, status.SkippedMalformedRowCount);
+        Assert.True(status.CalculationDurationMilliseconds >= 0);
+    }
+
+    [Fact]
+    public async Task GetAllAsync_WhenHeaderIsInvalid_ThrowsInvalidDataException()
+    {
+        using var testData = TestMeasurementData.Create(
+            "wrong;header",
+            "2026-01-01T00:00;Paris;10.0");
+
+        var service = CreateService(testData);
+
+        var exception = await Assert.ThrowsAsync<InvalidDataException>(() =>
+            service.GetAllAsync(CancellationToken.None));
+
+        Assert.Contains("Measurement data header is invalid", exception.Message);
     }
 
     [Fact]
