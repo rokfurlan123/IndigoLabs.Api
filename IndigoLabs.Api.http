@@ -1,0 +1,27 @@
+@IndigoLabs.Api_HostAddress = http://localhost:5154
+@Username = indigo
+@Password = labs
+
+GET {{IndigoLabs.Api_HostAddress}}/api/cities/Paris
+Authorization: Basic {{Username}}:{{Password}}
+Accept: application/json
+
+###
+
+GET {{IndigoLabs.Api_HostAddress}}/api/measurements/cache
+Authorization: Basic {{Username}}:{{Password}}
+Accept: application/json
+
+###
+
+GET {{IndigoLabs.Api_HostAddress}}/api/cities/average-temperature/greater-than/20
+Authorization: Basic {{Username}}:{{Password}}
+Accept: application/json
+
+###
+
+POST {{IndigoLabs.Api_HostAddress}}/api/measurements/recalculate
+Authorization: Basic {{Username}}:{{Password}}
+Accept: application/json
+
+###
