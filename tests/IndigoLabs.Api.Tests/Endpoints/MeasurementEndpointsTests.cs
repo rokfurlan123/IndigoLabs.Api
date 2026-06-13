@@ -43,15 +43,59 @@ public sealed class MeasurementEndpointsTests
     {
         using var application = new TestApplication(new FakeMeasurementStatisticsService
         {
-            ThrowCalculationInProgress = true
+            ExceptionToThrow = new MeasurementCalculationInProgressException()
         });
         using var client = application.CreateClient();
 
         var response = await client.GetAsyncWithBasicAuth("/api/cities/Paris");
         var body = await response.Content.ReadAsStringAsync();
+        var error = JsonSerializer.Deserialize<ErrorResponse>(body, JsonOptions);
 
         Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
-        Assert.Contains("Temperature calculations are currently happening.", body);
+        Assert.NotNull(error);
+        Assert.Equal("Temperature calculations are currently happening. Try again shortly.", error.Message);
+        Assert.DoesNotContain("title", body, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("detail", body, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task GetCity_WhenMeasurementFileIsMissing_ReturnsInternalServerErrorProblem()
+    {
+        using var application = new TestApplication(new FakeMeasurementStatisticsService
+        {
+            ExceptionToThrow = new FileNotFoundException("Measurement data file was not found.", "Data/measurements.csv")
+        });
+        using var client = application.CreateClient();
+
+        var response = await client.GetAsyncWithBasicAuth("/api/cities/Paris");
+        var body = await response.Content.ReadAsStringAsync();
+        var error = JsonSerializer.Deserialize<ErrorResponse>(body, JsonOptions);
+
+        Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
+        Assert.NotNull(error);
+        Assert.Equal("Measurement data file was not found.", error.Message);
+        Assert.DoesNotContain("title", body, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("detail", body, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task GetCity_WhenMeasurementFileIsInvalid_ReturnsInternalServerErrorProblem()
+    {
+        using var application = new TestApplication(new FakeMeasurementStatisticsService
+        {
+            ExceptionToThrow = new InvalidDataException("Measurement data header is invalid.")
+        });
+        using var client = application.CreateClient();
+
+        var response = await client.GetAsyncWithBasicAuth("/api/cities/Paris");
+        var body = await response.Content.ReadAsStringAsync();
+        var error = JsonSerializer.Deserialize<ErrorResponse>(body, JsonOptions);
+
+        Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
+        Assert.NotNull(error);
+        Assert.Equal("Measurement data header is invalid.", error.Message);
+        Assert.DoesNotContain("title", body, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("detail", body, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -124,7 +168,7 @@ public sealed class MeasurementEndpointsTests
 
     private sealed class FakeMeasurementStatisticsService : IMeasurementStatisticsService
     {
-        public bool ThrowCalculationInProgress { get; init; }
+        public Exception? ExceptionToThrow { get; init; }
 
         public CityTemperatureStats? CityResult { get; init; }
 
@@ -193,9 +237,9 @@ public sealed class MeasurementEndpointsTests
 
         private void ThrowIfCalculating()
         {
-            if (ThrowCalculationInProgress)
+            if (ExceptionToThrow is not null)
             {
-                throw new MeasurementCalculationInProgressException();
+                throw ExceptionToThrow;
             }
         }
     }

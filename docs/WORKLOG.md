@@ -9,10 +9,14 @@ Last updated: 2026-06-13
 - Extracted assignment dataset to `Data/measurements.csv`.
 - Created a modified dataset copy at `DataVariants/measurements_modified.csv`.
 - Added `.gitignore` with standard .NET ignores and CSV/data-file ignores.
+- Added `Data/.gitkeep` so the expected local data folder exists after clone.
+- Added `README.md` with setup, runtime, endpoint, auth, cache, recalculation, HTTP file, and test details.
+- Added `http-client.env.json` with development host addresses.
 - Removed the generated WeatherForecast sample API.
+- Converted endpoint implementation from Minimal APIs to controller-based ASP.NET Core API.
 - Split code into separate folders:
   - `Authentication`
-  - `Endpoints`
+  - `Controllers`
   - `Models`
   - `Options`
   - `Services`
@@ -35,11 +39,15 @@ Last updated: 2026-06-13
   - calculation duration
 - Added CSV header validation for `datetime;city;temp_celsius`.
 - Added handling for calculation-in-progress responses.
+- Replaced `ProblemDetails` error bodies with a simple `ErrorResponse` model containing only `message`.
 - Added xUnit test project at `tests/IndigoLabs.Api.Tests`.
 - Added service tests for aggregation, city lookup, filters, recalculation, and missing CSV behavior.
 - Added password hash verifier tests.
 - Added endpoint tests for authentication, not found, calculation-in-progress, and successful JSON responses.
-- Expanded `IndigoLabs.Api.http` with manual HTTP scenarios for Swagger, authentication, cache status, retrieval endpoints, filtering, recalculation, and calculation-in-progress behavior.
+- Split manual HTTP requests into:
+  - `IndigoLabs.Api.http` for success-path requests.
+  - `IndigoLabs.Api.Scenarios.http` for Swagger/auth/error/calculation-in-progress scenarios.
+- Disabled HTTPS redirection in Development so Swagger requests opened from the HTTP launch profile keep the Basic auth header.
 - Verified the API with manual smoke checks.
 
 ## Current API
@@ -66,22 +74,15 @@ Last updated: 2026-06-13
   - `indigo:labs` succeeds.
   - wrong password returns `401`.
 - Startup warmup builds cache for `99` cities.
-- While calculation is running, data endpoints return `503` with a problem response.
+- While calculation is running, data endpoints return `503` with a `{ "message": "..." }` response.
 - After warmup, endpoints return from the in-memory cache.
 - Cache status includes `sourceFileSizeBytes`.
 - File watcher starts and watches `Data/measurements.csv`.
 - `dotnet test tests/IndigoLabs.Api.Tests/IndigoLabs.Api.Tests.csproj` passes.
-- Current automated test count: 14 passing.
+- Current automated test count: 16 passing.
 
 ## Needs Change Or Upgrade
 
-- Add a proper `README.md` with:
-  - setup instructions
-  - credentials
-  - endpoint examples
-  - cache behavior
-  - file watcher behavior
-  - assumptions about CSV format
 - Consider returning clearer status during automatic file watcher recalculation:
   - current cache remains available, but manual recalculation lock can return `503`
   - decide whether reads should continue serving old cache during recalculation or return `503`
@@ -95,10 +96,7 @@ Last updated: 2026-06-13
 
 ## Still To Implement
 
-- Automated tests:
-  - Basic authentication handler tests
-  - file watcher behavior tests if practical
-- `README.md`.
+- Automated file watcher behavior tests if practical.
 - Git repository initialization and first commit, if desired.
 - Optional: solution file with separate test project.
 - Optional: API key or stronger auth if Basic auth is considered too weak.
@@ -114,5 +112,5 @@ Last updated: 2026-06-13
 - Allows recalculation when CSV changes: done manually and automatically through watcher.
 - Provides Swagger/OpenAPI: done.
 - Basic API authentication: done.
-- README: not done.
-- Tests: started, 14 passing service/auth-helper/endpoint tests.
+- README: done.
+- Tests: 16 passing service/auth-helper/endpoint tests.

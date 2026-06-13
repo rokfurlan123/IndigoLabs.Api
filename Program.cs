@@ -1,5 +1,4 @@
 using IndigoLabs.Api.Authentication;
-using IndigoLabs.Api.Endpoints;
 using IndigoLabs.Api.Options;
 using IndigoLabs.Api.Services;
 using Microsoft.AspNetCore.Authentication;
@@ -7,6 +6,7 @@ using Microsoft.OpenApi;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -53,11 +53,15 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
+
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapMeasurementEndpoints();
+app.MapControllers();
 
 app.Run();
 

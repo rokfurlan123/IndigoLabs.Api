@@ -1,63 +1,31 @@
-@IndigoLabs.Api_HostAddress = http://localhost:5154
-@Username = indigo
-@Password = labs
-@WrongPassword = wrong
+@IndigoLabs.Api_HostAddress = https://localhost:7093
 
-### Swagger JSON should be available without authentication
-GET {{IndigoLabs.Api_HostAddress}}/swagger/v1/swagger.json
-Accept: application/json
-
-### Cache status should return 401 without authentication
+### Cache status
 GET {{IndigoLabs.Api_HostAddress}}/api/measurements/cache
+Authorization: Basic aW5kaWdvOmxhYnM=
 Accept: application/json
 
-### Cache status should return 401 with wrong credentials
-GET {{IndigoLabs.Api_HostAddress}}/api/measurements/cache
-Authorization: Basic {{Username}}:{{WrongPassword}}
-Accept: application/json
-
-### Cache status should return 200 after startup warmup is complete
-GET {{IndigoLabs.Api_HostAddress}}/api/measurements/cache
-Authorization: Basic {{Username}}:{{Password}}
-Accept: application/json
-
-### All cities should return min, max, and average temperatures from cache
+### All cities
 GET {{IndigoLabs.Api_HostAddress}}/api/cities
-Authorization: Basic {{Username}}:{{Password}}
+Authorization: Basic aW5kaWdvOmxhYnM=
 Accept: application/json
 
-### Existing city should return one city's min, max, and average temperatures
+### Single city
 GET {{IndigoLabs.Api_HostAddress}}/api/cities/Paris
-Authorization: Basic {{Username}}:{{Password}}
-Accept: application/json
-
-### City lookup should be case-insensitive
-GET {{IndigoLabs.Api_HostAddress}}/api/cities/paris
-Authorization: Basic {{Username}}:{{Password}}
-Accept: application/json
-
-### Missing city should return 404
-GET {{IndigoLabs.Api_HostAddress}}/api/cities/Atlantis
-Authorization: Basic {{Username}}:{{Password}}
+Authorization: Basic aW5kaWdvOmxhYnM=
 Accept: application/json
 
 ### Average temperature greater than X
 GET {{IndigoLabs.Api_HostAddress}}/api/cities/average-temperature/greater-than/25
-Authorization: Basic {{Username}}:{{Password}}
+Authorization: Basic aW5kaWdvOmxhYnM=
 Accept: application/json
 
 ### Average temperature less than X
 GET {{IndigoLabs.Api_HostAddress}}/api/cities/average-temperature/less-than/0
-Authorization: Basic {{Username}}:{{Password}}
+Authorization: Basic aW5kaWdvOmxhYnM=
 Accept: application/json
 
 ### Manual cache recalculation
 POST {{IndigoLabs.Api_HostAddress}}/api/measurements/recalculate
-Authorization: Basic {{Username}}:{{Password}}
-Accept: application/json
-
-### During startup warmup or recalculation, data endpoints can return 503
-# Run this immediately after app startup or while a recalculation is already running.
-GET {{IndigoLabs.Api_HostAddress}}/api/cities/Paris
-Authorization: Basic {{Username}}:{{Password}}
+Authorization: Basic aW5kaWdvOmxhYnM=
 Accept: application/json
